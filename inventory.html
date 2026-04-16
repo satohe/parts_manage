@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>部品在庫管理</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{--primary:#2563eb;--success:#16a34a;--danger:#dc2626;--warn:#d97706;--border:#e2e8f0;--surface:#f8fafc;--text:#1e293b;--muted:#64748b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:var(--text);min-height:100vh;font-size:16px}
+/* NAV */
+.top-nav{background:#fff;border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;padding:0 1rem;gap:0.5rem;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.brand{font-weight:700;font-size:1.1rem;color:var(--primary);white-space:nowrap;display:flex;align-items:center;gap:.375rem;margin-right:.75rem}
+.nav-btn{padding:.45rem .875rem;border-radius:6px;border:none;background:none;color:var(--muted);font-size:1rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;white-space:nowrap;transition:.15s}
+.nav-btn:hover{background:var(--surface);color:var(--text)}
+.nav-btn.active{background:#eff6ff;color:var(--primary);font-weight:600}
+.bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);height:64px;z-index:100}
+.bot-nav-inner{display:flex;height:100%}
+.bot-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;color:var(--muted);font-size:.78rem;font-weight:500;transition:.15s}
+.bot-item i{font-size:1.4rem}
+.bot-item.active{color:var(--primary)}
+.bot-scan{background:var(--primary);border-radius:50%;width:54px;height:54px;margin-top:-16px;color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.4);flex:none}
+.bot-scan i{font-size:1.6rem}
+/* LAYOUT */
+.wrap{max-width:1100px;margin:0 auto;padding:1.25rem;padding-bottom:80px}
+.page{display:none}
+.page.active{display:block}
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-pad{padding:1.25rem}
+/* STATS */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem}
+.stat{border:1px solid var(--border);border-radius:12px;padding:1rem;text-align:center}
+.stat-val{font-size:2.2rem;font-weight:700;color:var(--primary);line-height:1}
+.stat-lbl{font-size:.9rem;color:var(--muted);margin-top:.35rem}
+/* SEARCH */
+.srch-wrap{position:relative;margin-bottom:1rem}
+.srch-wrap i{position:absolute;left:.875rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1.1rem}
+.srch-input{width:100%;padding:.875rem 1rem .875rem 2.75rem;border:1.5px solid var(--border);border-radius:10px;font-size:1.05rem;outline:none;background:#fff;transition:.15s}
+.srch-input:focus{border-color:var(--primary)}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{background:var(--surface);padding:.75rem 1rem;text-align:left;font-size:.875rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:.875rem 1rem;border-bottom:1px solid var(--border);font-size:1rem}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:var(--surface)}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:2rem;padding:.25rem .625rem;border-radius:6px;font-weight:700;font-size:.95rem}
+.b-ok{background:#dcfce7;color:#15803d}
+.b-low{background:#fef9c3;color:#854d0e}
+.b-zero{background:#fee2e2;color:#dc2626}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.375rem;padding:.7rem 1.2rem;border-radius:8px;border:none;font-size:1rem;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:#1d4ed8}
+.btn-s{background:var(--success);color:#fff}.btn-s:hover{background:#15803d}
+.btn-d{background:var(--danger);color:#fff}.btn-d:hover{background:#b91c1c}
+.btn-o{background:#fff;color:var(--text);border:1.5px solid var(--border)}.btn-o:hover{background:var(--surface)}
+.btn-w{background:#fff;color:var(--warn);border:1.5px solid var(--warn)}.btn-w:hover{background:#fffbeb}
+.btn-sm{padding:.4rem .875rem;font-size:.9rem}
+.btn-ico{width:34px;height:34px;border-radius:6px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;transition:.15s}
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.overlay.on{display:flex}
+.mbox{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.mhead{padding:1.1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mhead h5{font-size:1.1rem;font-weight:700}
+.mbody{padding:1.25rem}
+.mfoot{padding:.875rem 1.25rem;border-top:1px solid var(--border);display:flex;gap:.625rem;justify-content:flex-end}
+.cls-btn{background:none;border:none;font-size:1.25rem;cursor:pointer;color:var(--muted);line-height:1}
+/* FORM */
+.fg{margin-bottom:1rem}
+.fl{display:block;font-size:.95rem;font-weight:600;margin-bottom:.375rem}
+.fi{width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:1rem;background:#fff;color:var(--text);outline:none;transition:.15s}
+.fi:focus{border-color:var(--primary)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.875rem}
+/* IN/OUT SELECT */
+.sel-item{border:1.5px solid var(--border);border-radius:10px;padding:.875rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;transition:.15s}
+.sel-item:hover{border-color:#93c5fd;background:#f0f9ff}
+.sel-item.on{border-color:var(--primary);background:#eff6ff}
+.chk{width:24px;height:24px;border:2px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
+.sel-item.on .chk{border-color:var(--primary);background:var(--primary);color:#fff}
+/* ACTION BAR */
+.act-bar{display:none;position:sticky;bottom:68px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:50;margin-top:.5rem}
+/* CAMERA */
+.cam-wrap{position:relative;width:100%;max-width:440px;margin:0 auto;border-radius:12px;overflow:hidden;background:#000}
+#scan-video{width:100%;display:block;max-height:60vh;object-fit:cover}
+.scan-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{position:relative;width:200px;height:200px;border:3px solid rgba(37,99,235,.9);border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:var(--primary);animation:scanMove 2s linear infinite}
+@keyframes scanMove{0%{top:0}100%{top:100%}}
+.scan-frame.ocr-mode{width:280px;height:160px}
+/* LABEL */
+.label-box{border:1.5px solid #000;width:320px;height:158px;display:flex;gap:6px;padding:6px;background:#fff;font-family:Arial,sans-serif;flex-shrink:0}
+.label-qr{width:118px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.label-right{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.label-field{border:1px solid #000;padding:2px 4px}
+.label-field-lbl{font-size:8px;color:#000}
+.label-field-val{font-size:13px;font-weight:700;color:#000;word-break:break-all}
+.label-seq{font-size:18px;font-weight:700;color:#000}
+/* TX LIST */
+.tx-row{display:flex;align-items:center;gap:.75rem;padding:.625rem 0;border-bottom:1px solid var(--border)}
+.tx-row:last-child{border-bottom:none}
+.tx-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.dot-in{background:#dcfce7;color:#15803d}
+.dot-out{background:#fee2e2;color:#dc2626}
+/* TOAST */
+.toast-wrap{position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:.4rem;pointer-events:none}
+.toast{background:var(--text);color:#fff;padding:.75rem 1.1rem;border-radius:8px;font-size:.95rem;display:flex;align-items:center;gap:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:tIn .25s ease;max-width:300px}
+.toast.t-ok{background:var(--success)}.toast.t-err{background:var(--danger)}.toast.t-info{background:var(--primary)}
+@keyframes tIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+/* EMPTY */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+.empty i{font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.35}
+/* OCR STATUS */
+.ocr-bar{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.625rem .875rem;font-size:.95rem;color:var(--muted);margin-top:.75rem;display:none}
+.ocr-bar.on{display:flex;align-items:center;gap:.5rem}
+/* REGISTER PANEL */
+.reg-panel{animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.reg-step{display:flex;align-items:center;gap:.5rem;font-size:.95rem;padding:.6rem .875rem;border-radius:8px;margin-bottom:.875rem}
+.reg-step.pending{background:#eff6ff;color:var(--primary)}
+.reg-step.running{background:#fef9c3;color:#854d0e}
+.reg-step.done{background:#f0fdf4;color:var(--success)}
+.reg-step.fail{background:#fef2f2;color:var(--danger)}
+/* SCAN PAGE */
+.cam-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;text-align:center;padding:1.5rem .75rem .625rem;font-size:1rem;font-weight:500}
+.scan-actions{display:grid;grid-template-columns:1fr 1fr;gap:.625rem;padding:.75rem}
+.sab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.375rem;padding:.875rem .5rem;border:1.5px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;font-size:.95rem;font-weight:600;color:var(--text);width:100%;transition:.15s;min-height:72px}
+.sab i{font-size:1.75rem;line-height:1}
+.sab-p{background:var(--primary);color:#fff;border-color:var(--primary)}
+.sab-d{background:var(--danger);color:#fff;border-color:var(--danger)}
+.sab-w{background:var(--warn);color:#fff;border-color:var(--warn)}
+.sab-o{background:#f8fafc;color:var(--text)}
+@media(max-width:768px){
+  #page-scan{margin:-.875rem}
+  #page-scan .pg-title{padding:.875rem .875rem .375rem;margin-bottom:0;font-size:1.1rem}
+  #cam-wrap{border-radius:0;max-width:none}
+  #scan-video{max-height:48vh}
+}
+/* RESPONSIVE */
+@media(max-width:768px){
+  .top-nav .nav-btn{display:none}
+  .top-nav .brand span{display:none}
+  .bot-nav{display:block}
+  .wrap{padding:.875rem;padding-bottom:80px}
+  .tbl th:nth-child(5),.tbl td:nth-child(5),.tbl th:nth-child(6),.tbl td:nth-child(6){display:none}
+  .grid2{grid-template-columns:1fr}
+  .label-grid{grid-template-columns:1fr!important}
+  .stat-val{font-size:1.8rem}
+}
+@media(min-width:769px){.wrap{padding-bottom:1.25rem}}
+@media print{
+  body *{visibility:hidden}
+  #print-area,#print-area *{visibility:visible}
+  #print-area{position:fixed;top:0;left:0}
+}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.pg-title{font-size:1.35rem;font-weight:700;display:flex;align-items:center;gap:.4rem;margin-bottom:1.1rem}
+code{background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="brand"><i class="bi bi-boxes"></i><span>部品在庫管理</span></div>
+  <button class="nav-btn active" onclick="go('home')"><i class="bi bi-house"></i> ホーム</button>
+  <button class="nav-btn" onclick="go('list')"><i class="bi bi-table"></i> 部品一覧</button>
+  <button class="nav-btn" onclick="go('inout')"><i class="bi bi-arrow-left-right"></i> 入出庫</button>
+  <button class="nav-btn" onclick="go('label')"><i class="bi bi-qr-code"></i> ラベル</button>
+  <button class="nav-btn" onclick="go('scan')"><i class="bi bi-camera"></i> スキャン</button>
+  <button class="nav-btn" onclick="go('backup')"><i class="bi bi-archive"></i> バックアップ</button>
+</nav>
+
+<!-- BOTTOM NAV -->
+<nav class="bot-nav">
+  <div class="bot-nav-inner">
+    <button class="bot-item active" id="bn-home" onclick="go('home')"><i class="bi bi-house-fill"></i><span>ホーム</span></button>
+    <button class="bot-item" id="bn-list" onclick="go('list')"><i class="bi bi-table"></i><span>一覧</span></button>
+    <button class="bot-item bot-scan" id="bn-scan" onclick="go('scan')"><i class="bi bi-qr-code-scan"></i></button>
+    <button class="bot-item" id="bn-inout" onclick="go('inout')"><i class="bi bi-arrow-left-right"></i><span>入出庫</span></button>
+    <button class="bot-item" id="bn-more" onclick="toggleMore()"><i class="bi bi-three-dots"></i><span>その他</span></button>
+  </div>
+</nav>
+
+<!-- MOBILE MORE MENU -->
+<div id="more-menu" style="display:none;position:fixed;bottom:58px;left:0;right:0;background:#fff;border-top:1px solid var(--border);z-index:99;padding:.875rem;box-shadow:0 -4px 20px rgba(0,0,0,.1)">
+  <button class="btn btn-o" style="width:100%;margin-bottom:.5rem" onclick="go('label');toggleMore()"><i class="bi bi-qr-code"></i> ラベル作成</button>
+  <button class="btn btn-o" style="width:100%" onclick="go('backup');toggleMore()"><i class="bi bi-archive"></i> バックアップ</button>
+</div>
+
+<div class="wrap">
+
+<!-- ===== HOME ===== -->
+<div class="page active" id="page-home">
+  <div class="pg-title"><i class="bi bi-boxes" style="color:var(--primary)"></i> 在庫管理システム</div>
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">部品種類</div></div>
+    <div class="stat"><div class="stat-val" id="s-qty">0</div><div class="stat-lbl">総在庫数</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--danger)" id="s-low">0</div><div class="stat-lbl">残少部品</div></div>
+  </div>
+  <div class="srch-wrap">
+    <i class="bi bi-search"></i>
+    <input class="srch-input" id="h-srch" placeholder="部品番号・部品名で検索..." oninput="hSearch(this.value)">
+  </div>
+  <div id="h-results"></div>
+  <div class="card card-pad">
+    <div class="sec-hdr">
+      <span style="font-weight:600;font-size:.9rem">最近の入出庫</span>
+      <button class="btn btn-p btn-sm" onclick="go('inout')"><i class="bi bi-plus"></i> 入出庫処理</button>
+    </div>
+    <div id="h-tx"><div class="empty"><i class="bi bi-inbox"></i>履歴がありません</div></div>
+  </div>
+</div>
+
+<!-- ===== LIST ===== -->
+<div class="page" id="page-list">
+  <div class="sec-hdr">
+    <div class="pg-title" style="margin:0"><i class="bi bi-table" style="color:var(--primary)"></i> 部品一覧</div>
+    <button class="btn btn-p" onclick="openAdd()"><i class="bi bi-plus-lg"></i> 新規登録</button>
+  </div>
+  <div class="srch-wrap">
+    <i class="bi bi-funnel"></i>
+    <input class="srch-input" id="l-srch" placeholder="絞り込み検索..." oninput="renderList(this.value)">
+  </div>
+  <div class="card" style="overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th>管理番号</th><th>部品番号</th><th>部品名</th><th>数量</th><th>保管場所</th><th>特記事項</th><th style="width:96px">操作</th>
+        </tr></thead>
+        <tbody id="l-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== IN/OUT ===== -->
+<div class="page" id="page-inout">
+  <div class="pg-title"><i class="bi bi-arrow-left-right" style="color:var(--primary)"></i> 入出庫処理</div>
+  <div style="display:flex;gap:.625rem;margin-bottom:1rem">
+    <button class="btn btn-p" id="io-in" onclick="setType('in')" style="flex:1"><i class="bi bi-box-arrow-in-down"></i> 入庫</button>
+    <button class="btn btn-o" id="io-out" onclick="setType('out')" style="flex:1"><i class="bi bi-box-arrow-up"></i> 出庫</button>
+  </div>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:.625rem" id="io-hint">入庫する部品を選択（複数可）</p>
+  <div id="io-list" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem"></div>
+  <div class="act-bar" id="act-bar">
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.625rem" id="sel-cnt">0件選択中</div>
+    <div style="display:flex;gap:.625rem;align-items:center">
+      <label style="font-size:.82rem;white-space:nowrap">数量:</label>
+      <input type="number" id="io-qty" value="1" min="1" class="fi" style="width:70px;padding:.4rem">
+      <button class="btn btn-s" onclick="execIO()" style="flex:1" id="io-exec"><i class="bi bi-check-lg"></i> 実行</button>
+    </div>
+  </div>
+  <div class="card card-pad" style="margin-top:1rem">
+    <h6 style="font-weight:600;margin-bottom:.875rem;font-size:.9rem">入出庫履歴</h6>
+    <div id="io-hist"></div>
+  </div>
+</div>
+
+<!-- ===== LABEL ===== -->
+<div class="page" id="page-label">
+  <div class="pg-title"><i class="bi bi-qr-code" style="color:var(--primary)"></i> ラベル作成</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1rem" class="label-grid">
+    <div class="card card-pad">
+      <h6 style="font-weight:600;margin-bottom:.875rem;font-size:.9rem">部品選択・入力</h6>
+      <div class="fg">
+        <label class="fl">登録済み部品から選択</label>
+        <select class="fi" id="lb-sel" onchange="lbFromSel()">
+          <option value="">-- 選択 --</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">管理番号 <span style="font-size:.78rem;color:var(--muted)">（QRコード）</span></label>
+        <input class="fi" id="lb-mgmt" placeholder="例: 00001" oninput="lbUpdate()">
+      </div>
+      <div class="fg">
+        <label class="fl">部品番号 <span style="font-size:.78rem;color:var(--muted)">（ラベル上段）</span></label>
+        <input class="fi" id="lb-no" placeholder="例: ABC-1234567" oninput="lbUpdate()">
+      </div>
+      <div class="fg">
+        <label class="fl">部品名 <span style="font-size:.78rem;color:var(--muted)">（ラベル下段）</span></label>
+        <input class="fi" id="lb-name" placeholder="例: HDD, 1TB" oninput="lbUpdate()">
+      </div>
+      <div class="fg">
+        <label class="fl">印刷枚数</label>
+        <input type="number" class="fi" id="lb-cnt" value="1" min="1" max="100">
+      </div>
+      <button class="btn btn-p" style="width:100%" onclick="printLabels()"><i class="bi bi-printer"></i> 印刷</button>
+    </div>
+    <div class="card card-pad">
+      <h6 style="font-weight:600;margin-bottom:.875rem;font-size:.9rem">プレビュー</h6>
+      <div id="lb-prev" style="display:flex;justify-content:center;align-items:center;min-height:160px">
+        <div class="empty"><i class="bi bi-qr-code"></i>部品を選択してください</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCAN ===== -->
+<div class="page" id="page-scan">
+  <div class="pg-title"><i class="bi bi-camera" style="color:var(--primary)"></i> QRコードスキャン</div>
+
+  <!-- カメラ（全幅） -->
+  <div class="cam-wrap" id="cam-wrap">
+    <video id="scan-video" autoplay playsinline muted></video>
+    <div class="scan-ov">
+      <div class="scan-frame" id="sf"><div class="scan-line"></div></div>
+    </div>
+    <div class="cam-label" id="scan-hint">QRコードをフレームに合わせてください</div>
+  </div>
+  <canvas id="scan-cv" style="display:none"></canvas>
+
+  <!-- アクションボタン（カメラ直下・常時表示） -->
+  <div class="scan-actions" id="scan-actions">
+    <button class="sab sab-p" id="cam-start" onclick="startCam()">
+      <i class="bi bi-camera-video-fill"></i><span>カメラ起動</span>
+    </button>
+    <button class="sab sab-d" id="cam-stop" onclick="stopCam()" style="display:none">
+      <i class="bi bi-stop-circle-fill"></i><span>カメラ停止</span>
+    </button>
+    <button class="sab sab-w" onclick="triggerOCR()">
+      <i class="bi bi-camera-fill"></i><span>写真でOCR</span>
+    </button>
+    <button class="sab sab-o" id="btn-retry" onclick="retryQR()" style="display:none">
+      <i class="bi bi-arrow-counterclockwise"></i><span>再スキャン</span>
+    </button>
+  </div>
+
+  <!-- 写真OCR用（非表示） -->
+  <input type="file" id="ocr-file" accept="image/*" capture="environment"
+         style="display:none" onchange="runOCROnPhoto(event)">
+
+  <!-- OCR進捗 -->
+  <div id="ocr-status-bar" style="display:none;margin:.25rem .75rem 0" class="reg-step running">
+    <i class="bi bi-hourglass-split"></i><span id="ocr-status-msg">OCR処理中...</span>
+  </div>
+
+  <!-- 登録フォーム（未登録QR検出時に表示） -->
+  <div id="reg-panel" style="display:none;padding:.75rem 0">
+    <div class="card card-pad" style="margin:0 .75rem">
+      <div class="reg-step done" style="margin-bottom:.75rem">
+        <i class="bi bi-check-circle-fill"></i> QR読取完了 — 未登録の部品
+      </div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:.75rem">
+        入庫登録<span style="font-size:.85rem;font-weight:400;color:var(--muted)"> — 内容確認して登録</span>
+      </div>
+      <div class="fg">
+        <label class="fl">管理番号 <span style="color:var(--danger)">*</span> <span style="font-size:.78rem;color:var(--muted)">（QRコード）</span></label>
+        <input class="fi" id="rp-mgmt" placeholder="QRスキャン値">
+      </div>
+      <div class="fg">
+        <label class="fl">部品番号 <span style="font-size:.78rem;color:var(--muted)">（ラベル上段 / OCR）</span></label>
+        <input class="fi" id="rp-no" placeholder="例: ABC-1234567">
+      </div>
+      <div class="fg">
+        <label class="fl">部品名 <span style="font-size:.78rem;color:var(--muted)">（ラベル下段 / OCR）</span></label>
+        <input class="fi" id="rp-name" placeholder="例: HDD, 1TB">
+      </div>
+      <div class="grid2">
+        <div class="fg"><label class="fl">数量</label><input type="number" class="fi" id="rp-qty" value="1" min="0"></div>
+        <div class="fg"><label class="fl">保管場所</label><input class="fi" id="rp-loc" placeholder="棚A-1"></div>
+      </div>
+      <div class="fg"><label class="fl">特記事項</label><input class="fi" id="rp-note" placeholder="メモ（任意）"></div>
+      <button class="btn btn-p" onclick="saveFromScan()" style="width:100%;padding:.9rem;font-size:1.05rem">
+        <i class="bi bi-check-lg"></i> 登録する（入庫）
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== BACKUP ===== -->
+<div class="page" id="page-backup">
+  <div class="pg-title"><i class="bi bi-archive" style="color:var(--primary)"></i> バックアップ</div>
+  <div style="display:grid;gap:.875rem;max-width:560px">
+    <div class="card card-pad">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.875rem">
+        <div style="width:38px;height:38px;background:#eff6ff;border-radius:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-download" style="color:var(--primary);font-size:1.1rem"></i></div>
+        <div><div style="font-weight:600;font-size:.9rem">データをエクスポート</div><div style="font-size:.78rem;color:var(--muted)">JSONファイルとして保存</div></div>
+      </div>
+      <button class="btn btn-p" style="width:100%" onclick="exportData()"><i class="bi bi-download"></i> エクスポート</button>
+    </div>
+    <div class="card card-pad">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.875rem">
+        <div style="width:38px;height:38px;background:#f0fdf4;border-radius:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-upload" style="color:var(--success);font-size:1.1rem"></i></div>
+        <div><div style="font-weight:600;font-size:.9rem">データをインポート</div><div style="font-size:.78rem;color:var(--muted)">JSONファイルから復元</div></div>
+      </div>
+      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-s" style="width:100%" onclick="document.getElementById('imp-file').click()"><i class="bi bi-upload"></i> インポート</button>
+    </div>
+    <div class="card card-pad">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.875rem">
+        <div style="width:38px;height:38px;background:#fef2f2;border-radius:9px;display:flex;align-items:center;justify-content:center"><i class="bi bi-trash" style="color:var(--danger);font-size:1.1rem"></i></div>
+        <div><div style="font-weight:600;font-size:.9rem">全データリセット</div><div style="font-size:.78rem;color:var(--muted)">全データを削除します</div></div>
+      </div>
+      <button class="btn btn-d" style="width:100%" onclick="resetData()"><i class="bi bi-exclamation-triangle"></i> リセット</button>
+    </div>
+    <div class="card card-pad" id="bk-summary"></div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<!-- PART MODAL -->
+<div class="overlay" id="m-part">
+  <div class="mbox">
+    <div class="mhead"><h5 id="m-title">部品登録</h5><button class="cls-btn" onclick="closeM('m-part')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="mbody">
+      <input type="hidden" id="f-id">
+      <div class="fg"><label class="fl">管理番号 <span style="color:var(--danger)">*</span></label><input class="fi" id="f-mgmt" placeholder="例: 00001（QRコードに使用）"></div>
+      <div class="fg"><label class="fl">部品番号</label><input class="fi" id="f-no" placeholder="例: ABC-1234567（ラベル上段）"></div>
+      <div class="fg"><label class="fl">部品名</label><input class="fi" id="f-name" placeholder="例: HDD, 1TB（ラベル下段）"></div>
+      <div class="grid2">
+        <div class="fg"><label class="fl">数量</label><input type="number" class="fi" id="f-qty" value="0" min="0"></div>
+        <div class="fg"><label class="fl">保管場所</label><input class="fi" id="f-loc" placeholder="例: 棚A-1"></div>
+      </div>
+      <div class="fg"><label class="fl">特記事項</label><textarea class="fi" id="f-note" rows="2" placeholder="メモ・特記事項"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-o" onclick="closeM('m-part')">キャンセル</button>
+      <button class="btn btn-p" onclick="savePart()"><i class="bi bi-check-lg"></i> 登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCAN FOUND MODAL（入庫 / 出庫 選択） -->
+<div class="overlay" id="m-found">
+  <div class="mbox">
+    <div class="mhead">
+      <h5>部品情報</h5>
+      <button class="cls-btn" onclick="closeM('m-found')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="mbody" id="m-found-body"></div>
+    <!-- 数量 -->
+    <div style="padding:.25rem 1.25rem .75rem;display:flex;align-items:center;gap:.75rem">
+      <span style="font-weight:600;font-size:.95rem;white-space:nowrap">数量</span>
+      <button onclick="adjFoundQty(-1)" style="width:40px;height:40px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+      <input type="number" id="found-qty" value="1" min="1"
+        style="width:70px;text-align:center;padding:.5rem;border:1.5px solid var(--border);border-radius:8px;font-size:1.1rem;font-weight:700">
+      <button onclick="adjFoundQty(1)" style="width:40px;height:40px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center">＋</button>
+    </div>
+    <!-- 入庫 / 出庫 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding:.25rem 1.25rem 1.25rem">
+      <button class="btn btn-s" onclick="foundInOut('in')"
+        style="padding:1rem;font-size:1.05rem;flex-direction:column;gap:.25rem;height:80px">
+        <i class="bi bi-box-arrow-in-down" style="font-size:1.5rem"></i> 入庫
+      </button>
+      <button class="btn btn-d" onclick="foundInOut('out')"
+        style="padding:1rem;font-size:1.05rem;flex-direction:column;gap:.25rem;height:80px">
+        <i class="bi bi-box-arrow-up" style="font-size:1.5rem"></i> 出庫
+      </button>
+    </div>
+    <input type="hidden" id="found-partid">
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="m-confirm">
+  <div class="mbox" style="max-width:380px">
+    <div class="mhead"><h5 id="cf-title">確認</h5></div>
+    <div class="mbody"><p id="cf-msg"></p></div>
+    <div class="mfoot">
+      <button class="btn btn-o" onclick="closeM('m-confirm')">キャンセル</button>
+      <button class="btn btn-d" id="cf-ok">実行</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="print-area" style="display:none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+// ========== DB ==========
+const SK = 'inv_v1';
+let db = { parts:[], txs:[], seq:0 };
+
+function load(){ try{ const s=localStorage.getItem(SK); if(s) db=JSON.parse(s); }catch(e){} }
+function save(){ try{ localStorage.setItem(SK,JSON.stringify(db)); }catch(e){ toast('保存エラー','err'); } }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function nseq(){ db.seq=(db.seq||0)+1; return String(db.seq).padStart(5,'0'); }
+
+function addPart(d){
+  const s=nseq();
+  const p={id:uid(),seq:s,
+    mgmtNo:d.mgmtNo||s,        // 管理番号（QRコード）
+    partNo:d.partNo||'',        // 部品番号（ラベル上段・OCR）
+    partName:d.partName||'',    // 部品名（ラベル下段・OCR）
+    qty:parseInt(d.qty)||0,loc:d.loc||'',note:d.note||'',
+    createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  db.parts.push(p); save(); return p;
+}
+function updPart(id,d){
+  const i=db.parts.findIndex(p=>p.id===id); if(i<0) return null;
+  db.parts[i]={...db.parts[i],...d,updatedAt:new Date().toISOString()}; save(); return db.parts[i];
+}
+function delPart(id){ db.parts=db.parts.filter(p=>p.id!==id); db.txs=db.txs.filter(t=>t.pid!==id); save(); }
+function getPart(id){ return db.parts.find(p=>p.id===id); }
+function getPartByNo(no){ return db.parts.find(p=>p.partNo===no); }
+function getPartByMgmtNo(no){ return db.parts.find(p=>p.mgmtNo===no); }
+
+function addTx(pid,type,qty,note=''){
+  const p=getPart(pid); if(!p) return;
+  const after=type==='in'?p.qty+qty:Math.max(0,p.qty-qty);
+  const tx={id:uid(),pid,partNo:p.partNo,partName:p.partName,
+    type,qty,before:p.qty,after,note,date:new Date().toISOString()};
+  updPart(pid,{qty:after});
+  db.txs.unshift(tx);
+  if(db.txs.length>500) db.txs=db.txs.slice(0,500);
+  save(); return tx;
+}
+
+// ========== NAV ==========
+let cur='home';
+let camStream=null, scanRaf=null, scanMode='qr', scanCooldown=false;
+
+function go(p){
+  if(cur==='scan'&&p!=='scan') stopCam();
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  // desktop nav
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const nav=['home','list','inout','label','scan','backup'];
+  const di=nav.indexOf(p); if(di>=0) document.querySelectorAll('.nav-btn')[di].classList.add('active');
+  // bot nav
+  ['home','list','scan','inout'].forEach(n=>{
+    const el=document.getElementById('bn-'+n);
+    if(el) el.classList.toggle('active',n===p);
+  });
+  cur=p;
+  if(p==='home') renderHome();
+  if(p==='list') renderList();
+  if(p==='inout') renderInOut();
+  if(p==='label') renderLabel();
+  if(p==='scan') initScan();
+  if(p==='backup') renderBackup();
+  document.getElementById('more-menu').style.display='none';
+}
+
+function toggleMore(){ const m=document.getElementById('more-menu'); m.style.display=m.style.display==='none'?'block':'none'; }
+
+// ========== HOME ==========
+function renderHome(){
+  document.getElementById('s-total').textContent=db.parts.length;
+  document.getElementById('s-qty').textContent=db.parts.reduce((s,p)=>s+p.qty,0);
+  document.getElementById('s-low').textContent=db.parts.filter(p=>p.qty<=3).length;
+  const el=document.getElementById('h-tx');
+  if(!db.txs.length){el.innerHTML='<div class="empty"><i class="bi bi-inbox"></i>履歴がありません</div>';return;}
+  el.innerHTML=db.txs.slice(0,10).map(t=>`
+    <div class="tx-row">
+      <div class="tx-dot ${t.type==='in'?'dot-in':'dot-out'}"><i class="bi bi-arrow-${t.type==='in'?'down':'up'}"></i></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.875rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.partName)}</div>
+        <div style="font-size:.73rem;color:var(--muted)">${esc(t.partNo)}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <span style="font-weight:600;color:${t.type==='in'?'var(--success)':'var(--danger)'}">${t.type==='in'?'+':'-'}${t.qty}</span>
+        <div style="font-size:.7rem;color:var(--muted)">${fmtDate(t.date)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function hSearch(q){
+  const el=document.getElementById('h-results');
+  if(!q.trim()){el.innerHTML='';return;}
+  const lq=q.toLowerCase();
+  const r=db.parts.filter(p=>(p.mgmtNo||'').toLowerCase().includes(lq)||(p.partNo||'').toLowerCase().includes(lq)||(p.partName||'').toLowerCase().includes(lq));
+  if(!r.length){el.innerHTML='<p style="font-size:.85rem;color:var(--muted);padding:.5rem 0">検索結果なし</p>';return;}
+  el.innerHTML=`<div class="card" style="overflow:hidden;margin-bottom:1rem"><div style="overflow-x:auto">
+    <table class="tbl"><thead><tr><th>管理番号</th><th>部品番号</th><th>部品名</th><th>数量</th></tr></thead>
+    <tbody>${r.map(p=>`<tr onclick="openEdit('${p.id}')" style="cursor:pointer">
+      <td><code>${esc(p.mgmtNo)}</code></td><td style="color:var(--muted);font-size:.85rem">${esc(p.partNo)}</td>
+      <td style="font-weight:500">${esc(p.partName)}</td>
+      <td>${badge(p.qty)}</td>
+    </tr>`).join('')}</tbody></table></div></div>`;
+}
+
+// ========== LIST ==========
+function renderList(q=''){
+  const tbody=document.getElementById('l-tbody');
+  let parts=db.parts;
+  if(q){ const lq=q.toLowerCase(); parts=parts.filter(p=>(p.mgmtNo||'').toLowerCase().includes(lq)||(p.partNo||'').toLowerCase().includes(lq)||(p.partName||'').toLowerCase().includes(lq)||(p.loc||'').toLowerCase().includes(lq)); }
+  if(!parts.length){
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><i class="bi bi-inbox"></i>${q?'検索結果がありません':'部品が登録されていません'}</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=parts.map(p=>`
+    <tr>
+      <td><code>${esc(p.mgmtNo)}</code></td>
+      <td style="color:var(--muted);font-size:.85rem">${esc(p.partNo)}</td>
+      <td style="font-weight:500">${esc(p.partName)}</td>
+      <td>${badge(p.qty)}</td>
+      <td style="color:var(--muted)">${esc(p.loc)}</td>
+      <td style="color:var(--muted);font-size:.8rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.note)}</td>
+      <td>
+        <div style="display:flex;gap:3px">
+          <button class="btn-ico" style="background:#eff6ff;color:var(--primary)" onclick="openEdit('${p.id}')" title="編集"><i class="bi bi-pencil"></i></button>
+          <button class="btn-ico" style="background:#f0fdf4;color:var(--success)" onclick="goLabel('${p.id}')" title="ラベル"><i class="bi bi-qr-code"></i></button>
+          <button class="btn-ico" style="background:#fef2f2;color:var(--danger)" onclick="confirmDel('${p.id}')" title="削除"><i class="bi bi-trash"></i></button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ========== IN/OUT ==========
+let sel=new Set(), ioType='in';
+
+function setType(t){
+  ioType=t;
+  document.getElementById('io-in').className='btn '+(t==='in'?'btn-p':'btn-o');
+  document.getElementById('io-out').className='btn '+(t==='out'?'btn-d':'btn-o');
+  document.getElementById('io-hint').textContent=t==='in'?'入庫する部品を選択（複数可）':'出庫する部品を選択（複数可）';
+  document.getElementById('io-exec').innerHTML=`<i class="bi bi-check-lg"></i> ${t==='in'?'入庫':'出庫'}実行`;
+  sel.clear(); renderIOList();
+}
+
+function renderInOut(){ sel.clear(); renderIOList(); renderHist(); setType(ioType); }
+
+function renderIOList(){
+  const el=document.getElementById('io-list');
+  if(!db.parts.length){el.innerHTML='<div class="empty"><i class="bi bi-inbox"></i>部品が登録されていません</div>';document.getElementById('act-bar').style.display='none';return;}
+  el.innerHTML=db.parts.map(p=>{
+    const on=sel.has(p.id);
+    return `<div class="sel-item ${on?'on':''}" onclick="toggleSel('${p.id}')">
+      <div class="chk">${on?'<i class="bi bi-check-lg"></i>':''}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:500;font-size:.875rem">${esc(p.partName)||esc(p.partNo)||'—'}</div>
+        <div style="font-size:.73rem;color:var(--muted)">管理番号: ${esc(p.mgmtNo)}${p.loc?' | '+esc(p.loc):''}</div>
+      </div>
+      <div>${badge(p.qty)}</div>
+    </div>`;
+  }).join('');
+  const bar=document.getElementById('act-bar');
+  if(sel.size>0){bar.style.display='block';document.getElementById('sel-cnt').textContent=`${sel.size}件選択中`;}
+  else bar.style.display='none';
+}
+
+function toggleSel(id){ if(sel.has(id)) sel.delete(id); else sel.add(id); renderIOList(); }
+
+function execIO(){
+  if(!sel.size) return;
+  const qty=parseInt(document.getElementById('io-qty').value)||1;
+  sel.forEach(id=>addTx(id,ioType,qty));
+  toast(`${sel.size}件の${ioType==='in'?'入庫':'出庫'}処理が完了しました`,'ok');
+  sel.clear(); renderIOList(); renderHist(); renderHome();
+}
+
+function renderHist(){
+  const el=document.getElementById('io-hist');
+  if(!db.txs.length){el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.82rem;padding:1rem">履歴なし</div>';return;}
+  el.innerHTML=db.txs.slice(0,20).map(t=>`
+    <div class="tx-row">
+      <div class="tx-dot ${t.type==='in'?'dot-in':'dot-out'}"><i class="bi bi-arrow-${t.type==='in'?'down':'up'}"></i></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.85rem;font-weight:500">${esc(t.partName)}</div>
+        <div style="font-size:.73rem;color:var(--muted)">${esc(t.partNo)} | ${t.before}→${t.after}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <span style="font-weight:600;font-size:.875rem;color:${t.type==='in'?'var(--success)':'var(--danger)'}">${t.type==='in'?'+':'-'}${t.qty}</span>
+        <div style="font-size:.7rem;color:var(--muted)">${fmtDate(t.date)}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ========== LABEL ==========
+function renderLabel(){
+  const sel=document.getElementById('lb-sel');
+  sel.innerHTML='<option value="">-- 選択 --</option>'+db.parts.map(p=>`<option value="${p.id}">${esc(p.mgmtNo)} - ${esc(p.partName)||esc(p.partNo)}</option>`).join('');
+}
+
+function lbFromSel(){
+  const id=document.getElementById('lb-sel').value; if(!id) return;
+  const p=getPart(id); if(!p) return;
+  document.getElementById('lb-mgmt').value=p.mgmtNo||'';
+  document.getElementById('lb-no').value=p.partNo||'';
+  document.getElementById('lb-name').value=p.partName||'';
+  lbUpdate();
+}
+
+function lbUpdate(){
+  const mgmt=document.getElementById('lb-mgmt').value.trim();
+  const no=document.getElementById('lb-no').value.trim();
+  const name=document.getElementById('lb-name').value.trim();
+  const el=document.getElementById('lb-prev');
+  if(!mgmt){el.innerHTML='<div class="empty"><i class="bi bi-qr-code"></i>管理番号を入力してください</div>';return;}
+  buildLabelPreview(el,'lb-prev-qr',mgmt,no,name);
+}
+
+function buildLabelPreview(container, qrId, mgmt, no, name){
+  container.innerHTML=`<div class="label-box">
+    <div class="label-qr" id="${qrId}"></div>
+    <div class="label-right">
+      <div class="label-field"><div class="label-field-lbl">Part No.</div><div class="label-field-val">${esc(no)||'—'}</div></div>
+      <div class="label-field"><div class="label-field-lbl">Part Name</div><div class="label-field-val">${esc(name)||'—'}</div></div>
+      <div class="label-seq">${esc(mgmt)}</div>
+    </div>
+  </div>`;
+  // QRコードには管理番号のみを格納
+  QRCode.toCanvas(document.createElement('canvas'),mgmt,{width:110,margin:1},(err,cv)=>{
+    if(!err){cv.style.cssText='width:110px;height:110px';const qrEl=document.getElementById(qrId);if(qrEl)qrEl.appendChild(cv);}
+  });
+}
+
+function goLabel(id){
+  go('label');
+  setTimeout(()=>{ document.getElementById('lb-sel').value=id; lbFromSel(); },80);
+}
+
+async function printLabels(){
+  const mgmt=document.getElementById('lb-mgmt').value.trim();
+  const no=document.getElementById('lb-no').value.trim();
+  const name=document.getElementById('lb-name').value.trim();
+  const cnt=parseInt(document.getElementById('lb-cnt').value)||1;
+  if(!mgmt){toast('管理番号を入力してください','err');return;}
+  const pa=document.getElementById('print-area');
+  pa.style.display='block'; pa.innerHTML='';
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;flex-wrap:wrap;gap:8px;padding:8px';
+  for(let i=0;i<cnt;i++){
+    const lb=document.createElement('div'); lb.className='label-box';
+    const qd=document.createElement('div'); qd.className='label-qr'; qd.id='pqr'+i;
+    const ri=document.createElement('div'); ri.className='label-right';
+    ri.innerHTML=`<div class="label-field"><div class="label-field-lbl">Part No.</div><div class="label-field-val">${esc(no)||'—'}</div></div>
+      <div class="label-field"><div class="label-field-lbl">Part Name</div><div class="label-field-val">${esc(name)||'—'}</div></div>
+      <div class="label-seq">${esc(mgmt)}</div>`;
+    lb.appendChild(qd); lb.appendChild(ri); wrap.appendChild(lb);
+  }
+  pa.appendChild(wrap);
+  await Promise.all(Array.from({length:cnt},(_,i)=>new Promise(res=>{
+    QRCode.toCanvas(document.createElement('canvas'),mgmt,{width:110,margin:1},(err,cv)=>{
+      if(!err){cv.style.cssText='width:110px;height:110px';const el=document.getElementById('pqr'+i);if(el)el.appendChild(cv);}
+      res();
+    });
+  })));
+  window.print();
+  setTimeout(()=>{pa.style.display='none';},1000);
+}
+
+// ========== SCAN ==========
+let capturedCanvas = null; // store captured frame for OCR retry
+
+function initScan(){
+  hideRegPanel();
+  scanCooldown=false;
+  setHint('<i class="bi bi-qr-code-scan"></i> QRコードをフレームに合わせてください');
+  if(camStream){
+    // カメラ既に起動中 → そのままQRループを再開
+    startQRLoop();
+  } else if(window.innerWidth<768){
+    startCam();
+  }
+}
+
+function setHint(html){
+  const el=document.getElementById('scan-hint'); if(el) el.innerHTML=html;
+}
+
+async function startCam(){
+  // 既存ストリームを先に止める
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  if(scanRaf){ cancelAnimationFrame(scanRaf); scanRaf=null; }
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
+    });
+    const v=document.getElementById('scan-video');
+    v.srcObject=camStream;
+    document.getElementById('cam-start').style.display='none';
+    document.getElementById('cam-stop').style.display='flex';
+    // loadedmetadata が既に済んでいる場合も考慮
+    if(v.readyState >= 1){
+      startQRLoop();
+    } else {
+      v.onloadedmetadata=()=>{ startQRLoop(); };
+    }
+  }catch(e){ toast('カメラアクセスエラー: '+e.message,'err'); }
+}
+
+function stopCam(){
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  if(scanRaf){cancelAnimationFrame(scanRaf);scanRaf=null;}
+  const v=document.getElementById('scan-video'); if(v) v.srcObject=null;
+  const cs=document.getElementById('cam-start'); if(cs) cs.style.display='flex';
+  const cp=document.getElementById('cam-stop'); if(cp) cp.style.display='none';
+}
+
+function startQRLoop(){
+  if(scanRaf){cancelAnimationFrame(scanRaf);scanRaf=null;}
+  const v=document.getElementById('scan-video');
+  const cv=document.getElementById('scan-cv');
+  const ctx=cv.getContext('2d');
+  function tick(){
+    if(!camStream){scanRaf=null;return;}
+    if(v.readyState===v.HAVE_ENOUGH_DATA){
+      cv.width=v.videoWidth; cv.height=v.videoHeight;
+      ctx.drawImage(v,0,0);
+      const d=ctx.getImageData(0,0,cv.width,cv.height);
+      const r=jsQR(d.data,d.width,d.height,{inversionAttempts:'dontInvert'});
+      if(r&&!scanCooldown){handleQR(r.data,cv);return;}
+    }
+    scanRaf=requestAnimationFrame(tick);
+  }
+  scanRaf=requestAnimationFrame(tick);
+}
+
+function handleQR(data, cv){
+  scanCooldown=true;
+  if(scanRaf){cancelAnimationFrame(scanRaf);scanRaf=null;}
+
+  // QRコード = 管理番号（プレーンテキスト）
+  const mgmtNo=data.trim();
+
+  const p=getPartByMgmtNo(mgmtNo);
+  if(p){
+    // 登録済み → 入庫 / 出庫 選択モーダル
+    showInOutModal(p);
+    setTimeout(()=>{ scanCooldown=false; },3000);
+  } else {
+    // 未登録 → 入庫登録フォーム表示 + 自動OCR起動
+    capturedCanvas=cv;
+    showRegPanel(mgmtNo);
+    setOCRStatus('pending','ラベルを撮影してPart No・Part Nameを読み取ります');
+    setTimeout(()=>triggerOCR(), 500);
+  }
+}
+
+// ---- Register panel ----
+function showRegPanel(mgmtNo){
+  document.getElementById('reg-panel').style.display='block';
+  document.getElementById('btn-retry').style.display='flex';
+  document.getElementById('rp-mgmt').value=mgmtNo||'';
+  document.getElementById('rp-no').value='';
+  document.getElementById('rp-name').value='';
+  document.getElementById('rp-qty').value='1';
+  document.getElementById('rp-loc').value='';
+  document.getElementById('rp-note').value='';
+  document.getElementById('ocr-status-bar').style.display='none';
+  setHint('未登録 — OCRまたは手入力で部品番号・部品名を入力してください');
+}
+
+function hideRegPanel(){
+  document.getElementById('reg-panel').style.display='none';
+  document.getElementById('btn-retry').style.display='none';
+  document.getElementById('ocr-status-bar').style.display='none';
+}
+
+// ---- OCR: 写真撮影方式（ライブ映像より高精度） ----
+function triggerOCR(){
+  document.getElementById('ocr-file').click();
+}
+
+async function runOCROnPhoto(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  event.target.value=''; // 次回も発火できるようリセット
+
+  setOCRStatus('running','OCR処理中...');
+
+  // ObjectURLをTesseractに渡す（静止画なので高精度）
+  const url=URL.createObjectURL(file);
+  try{
+    const result=await Tesseract.recognize(url,'eng',{
+      logger:m=>{
+        if(m.status==='recognizing text')
+          setOCRStatus('running',`OCR処理中 ${Math.round(m.progress*100)}%`);
+      }
+    });
+    URL.revokeObjectURL(url);
+
+    const text=result.data.text;
+    console.log('[OCR text]', text);
+
+    const no=extractNo(text);
+    const name=extractName(text);
+
+    // 登録パネルが出ていなければ表示（手動OCR時）
+    if(document.getElementById('reg-panel').style.display==='none'){
+      showRegPanel('');
+    }
+    // OCRで取得した部品番号・部品名をフォームに反映
+    if(no) document.getElementById('rp-no').value=no;
+    if(name) document.getElementById('rp-name').value=name;
+
+    if(no||name){
+      setOCRStatus('done',`OCR完了 — ${[no&&'部品番号',name&&'部品名'].filter(Boolean).join('・')}を取得`);
+    } else {
+      setOCRStatus('fail','読み取れませんでした — ラベルを明るい場所で接写して再試行');
+    }
+  }catch(e){
+    URL.revokeObjectURL(url);
+    console.error('[OCR]',e);
+    setOCRStatus('fail','OCRエラー: '+e.message);
+  }
+}
+
+function setOCRStatus(state,msg){
+  const bar=document.getElementById('ocr-status-bar');
+  bar.style.display='flex';
+  const cls={pending:'pending',running:'running',done:'done',fail:'fail'};
+  bar.className='reg-step '+(cls[state]||'running');
+  const ic={pending:'camera',running:'hourglass-split',done:'check-circle-fill',fail:'exclamation-circle-fill'};
+  bar.innerHTML=`<i class="bi bi-${ic[state]||'hourglass-split'}"></i><span> ${msg}</span>`;
+}
+
+function retryQR(){
+  hideRegPanel();
+  scanCooldown=false;
+  setHint('<i class="bi bi-qr-code-scan"></i> QRコードをフレームに合わせてください');
+  if(camStream) startQRLoop();
+  else toast('カメラを起動してください','info');
+}
+
+function saveFromScan(){
+  const mgmt=document.getElementById('rp-mgmt').value.trim();
+  if(!mgmt){toast('管理番号は必須です','err');return;}
+  const no=document.getElementById('rp-no').value.trim();
+  const name=document.getElementById('rp-name').value.trim();
+  const qty=parseInt(document.getElementById('rp-qty').value)||1;
+  const data={mgmtNo:mgmt,partNo:no,partName:name,
+    qty,
+    loc:document.getElementById('rp-loc').value.trim(),
+    note:document.getElementById('rp-note').value.trim()};
+  const np=addPart(data);
+  addTx(np.id,'in',qty,'QRスキャン入庫登録');
+  toast(`管理番号「${mgmt}」を登録・入庫しました`,'ok');
+  hideRegPanel();
+  scanCooldown=false;
+  setHint('<i class="bi bi-qr-code-scan"></i> QRコードをフレームに合わせてください');
+  if(camStream) startQRLoop();
+  renderHome();
+}
+
+// ---- Found modal (入庫 / 出庫 選択) ----
+function showInOutModal(p){
+  document.getElementById('m-found-body').innerHTML=`
+    <div style="display:grid;gap:.625rem">
+      ${infoRow('管理番号',`<code>${esc(p.mgmtNo)}</code>`)}
+      ${p.partNo?infoRow('部品番号',`<span style="font-size:.9rem;color:var(--muted)">${esc(p.partNo)}</span>`):''}
+      ${infoRow('部品名',`<span style="font-weight:500">${esc(p.partName)||'—'}</span>`)}
+      ${infoRow('現在数量',badge(p.qty))}
+      ${infoRow('保管場所',esc(p.loc)||'—')}
+      ${p.note?infoRow('特記事項',esc(p.note)):''}
+    </div>`;
+  document.getElementById('found-qty').value='1';
+  document.getElementById('found-partid').value=p.id;
+  openM('m-found');
+}
+
+function adjFoundQty(delta){
+  const el=document.getElementById('found-qty');
+  el.value=Math.max(1,(parseInt(el.value)||1)+delta);
+}
+
+function foundInOut(type){
+  const pid=document.getElementById('found-partid').value;
+  const qty=parseInt(document.getElementById('found-qty').value)||1;
+  if(!pid){ toast('部品IDが取得できません','err'); return; }
+  addTx(pid,type,qty,'QRスキャン');
+  closeM('m-found');
+  toast(`${type==='in'?'入庫':'出庫'}処理が完了しました（${qty}点）`,'ok');
+  renderHome();
+}
+
+function infoRow(lbl,val){return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--surface);border-radius:8px"><span style="font-size:.78rem;color:var(--muted)">${lbl}</span><span>${val}</span></div>`;}
+
+function extractNo(t){
+  const r=[/Part\s*No\.?\s*[:\s]*([A-Za-z0-9\-_]+)/i,/部品番号\s*[:\s]*([A-Za-z0-9\-_]+)/i,/\b([0-9]{5,10})\b/];
+  for(const p of r){const m=t.match(p);if(m) return m[1].trim();}
+  return '';
+}
+function extractName(t){
+  const r=[/Part\s*Name\s*[:\s]*([^\n\r]+)/i,/部品名\s*[:\s]*([^\n\r]+)/i];
+  for(const p of r){const m=t.match(p);if(m) return m[1].trim();}
+  return '';
+}
+
+// ========== MODAL ==========
+function openAdd(){
+  document.getElementById('m-title').textContent='部品登録';
+  document.getElementById('f-id').value='';
+  ['f-mgmt','f-no','f-name','f-loc','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-qty').value='0';
+  openM('m-part');
+}
+function openEdit(id){
+  const p=getPart(id); if(!p) return;
+  document.getElementById('m-title').textContent='部品編集';
+  document.getElementById('f-id').value=id;
+  document.getElementById('f-mgmt').value=p.mgmtNo||'';
+  document.getElementById('f-no').value=p.partNo||'';
+  document.getElementById('f-name').value=p.partName||'';
+  document.getElementById('f-qty').value=p.qty;
+  document.getElementById('f-loc').value=p.loc;
+  document.getElementById('f-note').value=p.note;
+  openM('m-part');
+}
+function savePart(){
+  const mgmt=document.getElementById('f-mgmt').value.trim();
+  if(!mgmt){toast('管理番号は必須です','err');return;}
+  const no=document.getElementById('f-no').value.trim();
+  const name=document.getElementById('f-name').value.trim();
+  const data={mgmtNo:mgmt,partNo:no,partName:name,qty:parseInt(document.getElementById('f-qty').value)||0,
+    loc:document.getElementById('f-loc').value.trim(),note:document.getElementById('f-note').value.trim()};
+  const id=document.getElementById('f-id').value;
+  if(id){
+    const old=getPart(id);
+    if(old&&old.qty!==data.qty){const d=data.qty-old.qty; d>0?addTx(id,'in',d,'手動更新'):addTx(id,'out',-d,'手動更新');}
+    updPart(id,data); toast('更新しました','ok');
+  } else {
+    const np=addPart(data);
+    if(data.qty>0) addTx(np.id,'in',data.qty,'初期登録');
+    toast('登録しました','ok');
+  }
+  closeM('m-part'); renderList(document.getElementById('l-srch').value); renderHome();
+}
+
+function confirmDel(id){
+  const p=getPart(id); if(!p) return;
+  document.getElementById('cf-title').textContent='削除の確認';
+  document.getElementById('cf-msg').textContent=`「${p.partName}」を削除しますか？この操作は元に戻せません。`;
+  document.getElementById('cf-ok').onclick=()=>{
+    delPart(id); closeM('m-confirm'); toast('削除しました','ok');
+    renderList(document.getElementById('l-srch').value); renderHome();
+  };
+  openM('m-confirm');
+}
+
+function openM(id){ document.getElementById(id).classList.add('on'); }
+function closeM(id){
+  document.getElementById(id).classList.remove('on');
+  if(cur==='scan'&&camStream&&scanMode==='qr') setTimeout(startQRLoop,400);
+}
+
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target===o){o.classList.remove('on'); if(cur==='scan'&&camStream&&scanMode==='qr') setTimeout(startQRLoop,400);}
+}));
+
+// ========== BACKUP ==========
+function exportData(){
+  const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`parts_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.json`; a.click();
+  URL.revokeObjectURL(a.href); toast('エクスポートしました','ok');
+}
+function importData(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.parts||!Array.isArray(d.parts)) throw new Error('無効なファイル形式');
+      db=d; save(); toast(`インポートしました（${db.parts.length}件）`,'ok');
+      renderHome(); renderBackup();
+    }catch(err){toast('インポートエラー: '+err.message,'err');}
+  };
+  r.readAsText(f); e.target.value='';
+}
+function resetData(){
+  document.getElementById('cf-title').textContent='データリセット';
+  document.getElementById('cf-msg').textContent='全データを削除します。この操作は元に戻せません。本当によろしいですか？';
+  document.getElementById('cf-ok').onclick=()=>{
+    db={parts:[],txs:[],seq:0}; save(); closeM('m-confirm'); toast('リセットしました','ok');
+    renderHome(); renderBackup();
+  };
+  openM('m-confirm');
+}
+function renderBackup(){
+  document.getElementById('bk-summary').innerHTML=`<h6 style="font-weight:600;margin-bottom:.875rem;font-size:.9rem">データ概要</h6>
+    <div style="display:grid;gap:0">
+      ${bkRow('登録部品数',db.parts.length+'種類')}
+      ${bkRow('総在庫数',db.parts.reduce((s,p)=>s+p.qty,0)+'点')}
+      ${bkRow('入出庫履歴数',db.txs.length+'件')}
+      ${bkRow('最終更新',db.txs.length?fmtDate(db.txs[0].date):'なし')}
+    </div>`;
+}
+function bkRow(l,v){return `<div style="display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--border)"><span style="font-size:.875rem;color:var(--muted)">${l}</span><span style="font-weight:600;font-size:.875rem">${v}</span></div>`;}
+
+// ========== UTILS ==========
+function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function badge(q){ const c=q===0?'b-zero':q<=3?'b-low':'b-ok'; return `<span class="badge ${c}">${q}</span>`; }
+function fmtDate(iso){
+  const d=new Date(iso),now=new Date(),diff=now-d;
+  if(diff<60000) return 'たった今';
+  if(diff<3600000) return Math.floor(diff/60000)+'分前';
+  if(diff<86400000) return Math.floor(diff/3600000)+'時間前';
+  return d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function toast(msg,type='info'){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');
+  const ic=type==='ok'?'check-circle':type==='err'?'exclamation-circle':'info-circle';
+  t.className=`toast t-${type==='ok'?'ok':type==='err'?'err':'info'}`;
+  t.innerHTML=`<i class="bi bi-${ic}"></i> ${esc(msg)}`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.animation='tIn .25s ease reverse';setTimeout(()=>t.remove(),250);},3000);
+}
+
+// ========== INIT ==========
+load(); renderHome();
+</script>
+</body>
+</html>
